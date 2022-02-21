@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "aws-iot-device-sdk": "^2.2.11",
+    "debug": "^4.3.3",
+    "getopts": "^2.3.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.1",
+    "mqtt": "^4.3.5"
+  }
+}
