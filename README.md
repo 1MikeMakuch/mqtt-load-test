@@ -1,27 +1,46 @@
 
 # mqtt load test
 
-This is a Node.js script so first do;
 
-    $ npm install
 
 This mqttTest.js script allows for simulating many mqtt devices both on the subscription and publish. You should run it in one session for subscriptions and another for publishing. I have tested it with mosquitto and AWS IOT.
 
+I have successfully run tests with as many as 100 child processes each with 50 clients for a total of 5000 clients, on a Macbook. With that much activity the publishing needs to be slowed down a bit, so there are options for sleeping between publishes.
+
 It allows for creating multiple child processes and multiple mqtt device clients per process. It works with both the aws-iot-device-sdk as well as the mqtt client libraries.
 
+This is a Node.js script so first do;
+
+    $ npm install
+```
+Options:
+      --baseReconnectTimeMs=int    ms
+      --caCert=file                root cert file
+      --clientCert=file            client cert file
+      --clientId=string            aws requires a uniq clientId per connection, the script appends a counter
+      --concurrency=int            shortcut for setting both numChildren and numClientsPerChild to same n
+      --Debug=string               true or blank
+      --forkDelay=int              milliseconds to sleep between forks
+      --Host=string                host
+      --keepAlive=int              ms
+      --mqttLibType=string         aws or mqtt which client lib to use
+      --numberToPublish=int        number of publishes by each client
+      --numChildren=int            number of processes to fork
+      --numClientsPerChild=int     number of mqtt clients to create
+      --Port=int                   port
+      --privateKey=file            private key file
+      --Protocol=string            mqtt, mqtts, etc
+      --pub-single-client          special handling of single client publishing, see the code
+      --pub=true                   for publisher
+      --publishDelay=int           ms
+      --publishDelayModulo=int     every n ms sleep for publishDelay ms
+      --region=string              aws region i.e. us-west-2
+      --sub=true                   for subscriber
+      --topic=string               "deviceId" will be replaced with counter
+```
 ### Example: demonstrate the throttling implemented in the aws-iot-device-sdk
 
-By using a single mqtt/aws-iot-device-sdk client for publishing and one client with a subscription, we can see that the aws client throttles publishes at a much lower rate than the hard limit of 100 per second per client https://docs.aws.amazon.com/general/latest/gr/iot-core.html#message-broker-limits In fact this rate is limited by the drainTimeMs in
-
-`aws-iot-device-sdk/device/index.js lines ~ 370:`
-
-```
-    //
-    // Used to time draining operations; active during draining.
-    //
-    var drainingTimer = null
-    var drainTimeMs = 250
-```
+By using a single mqtt/aws-iot-device-sdk client for publishing and one client with a subscription, we can see that the aws client throttles publishes at a much lower rate than the hard limit of 100 per second per client https://docs.aws.amazon.com/general/latest/gr/iot-core.html#message-broker-limits In fact this rate is limited by the aws client in: https://github.com/aws/aws-iot-device-sdk-js/blob/master/device/index.js#L308 see the drainTimeMs variable. If you adjust that lower it will speed up publishes.
 
 Create a subscription with 1 child, 1 client:
 
@@ -90,7 +109,7 @@ So it's clear that the AWS IOT service isn't throttling, it's the aws-iot-device
 
 The point of of this is that, if you have a server with a single aws-iot-device-sdk client sending mqtt messages on behalf of many devices, then you will run into this throttling when the number of devices becomes sufficient large. One way to address this is to increase the number of clients as I have shown above.
 
-With this script I have successfully run tests with as many as 100 child processes each with 50 clients, on a Macbook.
+
 
 ### Example: demonstrate per device topics
 

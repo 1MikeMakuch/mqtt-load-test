@@ -1,5 +1,5 @@
-//
-//
+// mqttTest.js
+// 1MikeMakuch@gmail.com 2022/02/24
 
 const getopts = require('getopts')
 let debug = require('debug')('mqtt-test:parent')
