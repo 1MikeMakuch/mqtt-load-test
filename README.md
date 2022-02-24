@@ -9,7 +9,7 @@ This mqttTest.js script allows for simulating many mqtt devices both on the subs
 
 It allows for creating multiple child processes and multiple mqtt device clients per process. It works with both the aws-iot-device-sdk as well as the mqtt client libraries.
 
-Example: demonstrate the throttling implemented in the aws-iot-device-sdk
+### Example: demonstrate the throttling implemented in the aws-iot-device-sdk
 
 By using a single mqtt/aws-iot-device-sdk client for publishing and one client with a subscription, we can see that the aws client throttles publishes at a much lower rate than the hard limit of 100 per second per client https://docs.aws.amazon.com/general/latest/gr/iot-core.html#message-broker-limits In fact this rate is limited by the drainTimeMs in
 
@@ -91,3 +91,43 @@ So it's clear that the AWS IOT service isn't throttling, it's the aws-iot-device
 The point of of this is that, if you have a server with a single aws-iot-device-sdk client sending mqtt messages on behalf of many devices, then you will run into this throttling when the number of devices becomes sufficient large. One way to address this is to increase the number of clients as I have shown above.
 
 With this script I have successfully run tests with as many as 100 child processes each with 50 clients, on a Macbook.
+
+### Example: demonstrate per device topics
+
+The script allows for using deviceId specific topics, for one to one publishing or many to one or one to many. Notice in the options above the `--topic=test000`. By appending /deviceId to it as `--topic=test000/deviceId` the script replaces the "deviceId" with a counter.
+```
+    $ DEBUG_COLORS=no DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=10 \
+      --Host=***.amazonaws.com -Port8883 --privateKey=test001.private.key \
+       --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test000/deviceId --sub=true --clientId=sdk-nodejs-sub-0
+
+    2022-02-24T22:18:41.595Z mqtt-test:child 0-4 connect {"child":0,"clientId":4}
+    2022-02-24T22:18:41.596Z mqtt-test:child 0-4 subscribed test000/0-4
+    2022-02-24T22:18:41.602Z mqtt-test:child 0-2 connect {"child":0,"clientId":2}
+    2022-02-24T22:18:41.602Z mqtt-test:child 0-2 subscribed test000/0-2
+    2022-02-24T22:18:41.605Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
+    2022-02-24T22:18:41.605Z mqtt-test:child 0-0 subscribed test000/0-0
+    2022-02-24T22:18:41.606Z mqtt-test:child 0-8 connect {"child":0,"clientId":8}
+    2022-02-24T22:18:41.606Z mqtt-test:child 0-8 subscribed test000/0-8
+    [snip]
+```
+We can see that each client is subscribing to a different unique topic. Now to publish;
+```
+    $ DEBUG_COLORS=no DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
+    --numClientsPerChild=10 --numberToPublish=1  --forkDelay=0 --Host=***.amazonaws.com \
+    -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
+     --topic=test000/deviceId --pub-single-client=true --clientId=sdk-nodejs-pub-0
+
+    2022-02-24T22:20:20.234Z mqtt-test:child 0-11 connect {"child":0,"clientId":11}
+    2022-02-24T22:20:20.234Z mqtt-test:child 0-11 published topic:test000/0-11 {"message":"hello from: 0-11","timestamp":1645741220234,"startTime":1645741219841}
+    2022-02-24T22:20:20.235Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
+    2022-02-24T22:20:20.235Z mqtt-test:child 0-0 published topic:test000/0-0 {"message":"hello from: 0-0","timestamp":1645741220235,"startTime":1645741219841}
+    2022-02-24T22:20:20.235Z mqtt-test:child 0-18 connect {"child":0,"clientId":18}
+    2022-02-24T22:20:20.235Z mqtt-test:child 0-18 published topic:test000/0-18 {"message":"hello from: 0-18","timestamp":1645741220235,"startTime":1645741219841}
+```
+We can see each client publishes to a unique topic. And on the subscriber we see each client receives it's corresponding message;
+```
+    2022-02-24T22:20:20.555Z mqtt-test:child 0-0 topic test000/0-0 received hello from: 0-0 latency:320 totalLatency:714
+    2022-02-24T22:20:20.556Z mqtt-test:child 0-9 topic test000/0-9 received hello from: 0-9 latency:314 totalLatency:715
+    2022-02-24T22:20:20.557Z mqtt-test:child 0-3 topic test000/0-3 received hello from: 0-3 latency:319 totalLatency:716
+    [snip]
+```
