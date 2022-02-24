@@ -79,7 +79,7 @@ async function main() {
         clients[i].clientId = i
         mqttOps(clients[i])
       }
-    } else if ('mosquitto' === opts.mqttLibType) {
+    } else if ('mqtt' === opts.mqttLibType) {
       const mqtt = require('mqtt')
       // const tls = {}
       // tls.mqtt = require('./node_modules/mqtt/lib/connect/tls')
@@ -120,9 +120,10 @@ async function main() {
         const deviceId = opts.child + '-' + client.clientId
         debug(deviceId, 'connect', JSON.stringify({child: opts.child, clientId: client.clientId}))
 
-        let topic
+        let origTopic, topic
         if (opts.topic) {
           topic = opts.topic
+          origTopic = opts.topic
         }
         if (topic.match(/\/deviceId/)) {
           topic = topic.replace('deviceId', deviceId)
@@ -148,8 +149,8 @@ async function main() {
           while (i < opts.numberToPublish) {
             let deviceId = '0-' + clientId
             let payload = {message: 'hello from: ' + deviceId, timestamp: Date.now(), startTime}
-            if (topic.match(/\/deviceId/)) {
-              topic = topic.replace('deviceId', deviceId)
+            if (origTopic.match(/\/deviceId/)) {
+              topic = origTopic.replace('deviceId', deviceId)
             }
             client.publish(topic, JSON.stringify(payload))
             debug(deviceId, 'published-sc', numberPublishes, 'topic:' + topic, JSON.stringify(payload))
