@@ -11,7 +11,9 @@ It allows for creating multiple child processes and multiple mqtt device clients
 
 Example: demonstrate the throttling implemented in the aws-iot-device-sdk
 
-By using a single mqtt client for publishing and one mqtt client with a subscription, we can see that the aws client throttles publishes at a much lower rate than the hard limit of 100 per second per client https://docs.aws.amazon.com/general/latest/gr/iot-core.html In fact this rate is limited by the drainTimeMs in `aws-iot-device-sdk/device/index.js lines ~ 370:`
+By using a single mqtt/aws-iot-device-sdk client for publishing and one client with a subscription, we can see that the aws client throttles publishes at a much lower rate than the hard limit of 100 per second per client https://docs.aws.amazon.com/general/latest/gr/iot-core.html#message-broker-limits In fact this rate is limited by the drainTimeMs in
+
+`aws-iot-device-sdk/device/index.js lines ~ 370:`
 
 ```
     //
@@ -60,6 +62,8 @@ We can see the aws-iot-device-sdk client accepts all the publishes at once, with
     2022-02-24T21:51:51.402Z mqtt-test:child 0-0 topic test000 received hello from: 0-18 latency:4878 totalLatency:5273
     2022-02-24T21:51:51.650Z mqtt-test:child 0-0 topic test000 received hello from: 0-19 latency:5127 totalLatency:5522
 ```
+And if you adjust the `drainTimeMs = 250` you will readily see the result.
+
 This throttling is occuring in the aws-iot-device-sdk, not in the AWS IOT Core service. A couple ways to see this;
 
 First, once all the publishes have begun, we immediately see the subscriber begin to received messages 1 at a time. If we quickly kill the publisher process with Ctrl-C, the messages immediately stop being received by the subscriber.
@@ -85,3 +89,5 @@ With the same subscriber as above and this publisher with 20 clients;
 So it's clear that the AWS IOT service isn't throttling, it's the aws-iot-device-sdk, i.e. the "Used to time draining operations; active during draining." you can see in the code.
 
 The point of of this is that, if you have a server with a single aws-iot-device-sdk client sending mqtt messages on behalf of many devices, then you will run into this throttling when the number of devices becomes sufficient large. One way to address this is to increase the number of clients as I have shown above.
+
+With this script I have successfully run tests with as many as 100 child processes each with 50 clients, on a Macbook.
