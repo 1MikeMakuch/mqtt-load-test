@@ -19,7 +19,7 @@ if (opts.concurrency) {
   opts.numClientsPerChild = opts.numClientsPerChild || 1
   opts.numChildren = opts.numChildren || 1
 }
-opts.forkDelay = opts.forkDelay || 1000
+opts.forkDelay = opts.forkDelay || 0
 opts.numberToPublish = opts.numberToPublish || 1
 
 if (opts.HostFile) {

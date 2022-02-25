@@ -9,6 +9,8 @@ I have successfully run tests with as many as 100 child processes each with 50 c
 
 It allows for creating multiple child processes and multiple mqtt device clients per process. It works with both the aws-iot-device-sdk as well as the mqtt client libraries.
 
+I have a short Youtube explaining the examples below: https://www.youtube.com/watch?v=SwsmxwZYUYM
+
 This is a Node.js script so first do;
 
 ```
