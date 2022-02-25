@@ -17,11 +17,12 @@ This is a Node.js script so first do;
           --baseReconnectTimeMs=int    ms
           --caCert=file                root cert file
           --clientCert=file            client cert file
-          --clientId=string            aws requires a uniq clientId per connection, the script appends a counter
+          --clientId=string            if you need a uniq clientId per connection, the script appends a counter
           --concurrency=int            shortcut for setting both numChildren and numClientsPerChild to same n
           --Debug=string               true or blank
           --forkDelay=int              milliseconds to sleep between forks
           --Host=string                host
+          --HostFile=file              file containing hostname
           --keepAlive=int              ms
           --mqttLibType=string         aws or mqtt which client lib to use
           --numberToPublish=int        number of publishes by each client

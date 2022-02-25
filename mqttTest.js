@@ -6,6 +6,7 @@ let debug = require('debug')('mqtt-test:parent')
 let debugE = require('debug')('mqtt-test:error:parent')
 const moment = require('moment')
 const _ = require('lodash')
+const fs = require('fs')
 const {fork} = require('child_process')
 
 let opts = {options: {}}
@@ -20,6 +21,10 @@ if (opts.concurrency) {
 }
 opts.forkDelay = opts.forkDelay || 1000
 opts.numberToPublish = opts.numberToPublish || 1
+
+if (opts.HostFile) {
+  opts.Host = fs.readFileSync(opts.HostFile, 'utf8')
+}
 
 const children = new Array(opts.numChildren).fill(null)
 
