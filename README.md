@@ -5,14 +5,22 @@
 
 This mqttTest.js script allows for simulating many mqtt devices both on the subscription and publish. You should run it in one session for subscriptions and another for publishing. I have tested it with mosquitto and AWS IOT.
 
-I have successfully run tests with as many as 100 child processes each with 50 clients for a total of 5000 clients, on a Macbook. With that much activity the publishing needs to be slowed down a bit, so there are options for sleeping between publishes.
+I have successfully run tests with as many as 100 child processes each with 50 clients for a total of 5000 clients, on a Macbook. With that much activity the publishing needs to be slowed down a bit, so there are options for throttling.
 
 It allows for creating multiple child processes and multiple mqtt device clients per process. It works with both the aws-iot-device-sdk as well as the mqtt client libraries.
 
 This is a Node.js script so first do;
 
+```
       $ npm install
 ```
+
+
+To run it with debug logging;
+
+```
+      $ DEBUG="mqtt-test*" node mqttTest.js
+
       Options:
           --baseReconnectTimeMs=int    ms
           --caCert=file                root cert file
@@ -31,7 +39,7 @@ This is a Node.js script so first do;
           --Port=int                   port
           --privateKey=file            private key file
           --Protocol=string            mqtt, mqtts, etc
-          --pub-single-client          special handling of single client publishing, see the code
+          --pub-single-client=true     special handling of single client publishing, see the code
           --pub=true                   for publisher
           --publishDelay=int           ms
           --publishDelayModulo=int     every n ms sleep for publishDelay ms
@@ -40,9 +48,7 @@ This is a Node.js script so first do;
           --topic=string               "deviceId" will be replaced with counter
 ```
 
-To run it with debug logging;
 
-      $ DEBUG="mqtt-test*" node mqttTest.js
 
 ### Example: demonstrate the throttling implemented in the aws-iot-device-sdk
 
@@ -51,9 +57,10 @@ By using a single mqtt/aws-iot-device-sdk client for publishing and one client w
 Create a subscription with 1 child, 1 client:
 
 ```
-      $ DEBUG_COLORS=no DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
-        --Host=***.amazonaws.com -Port8883 --privateKey=test001.private.key \
-         --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test000 --sub=true --clientId=sdk-nodejs-sub-0
+      $ DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --sub=true --numChildren=1 --numClientsPerChild=1 \
+        --Host=***.amazonaws.com -Port8883 \
+        --privateKey=test001.private.key  --clientCert=test001.cert.pem --caCert=root-CA.crt \
+        --topic=test000 --clientId=sdk-nodejs-sub-0
 
       2022-02-24T21:46:38.389Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
       2022-02-24T21:46:38.390Z mqtt-test:child 0-0 subscribed test000
@@ -62,7 +69,7 @@ Create a subscription with 1 child, 1 client:
 And now publish a few messages with a single client:
 
 ```
-      $ DEBUG_COLORS=no DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
+      $ DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
       --numClientsPerChild=1 --numberToPublish=20  --forkDelay=0 --Host=***.amazonaws.com \
       -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test000 \
       --pub-single-client=true --clientId=sdk-nodejs-pub-0
@@ -98,7 +105,7 @@ Second, if we create multiple clients we can see that all the messages are immed
 With the same subscriber as above and this publisher with 20 clients;
 
 ```
-      $ DEBUG_COLORS=no DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
+      $ DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
       --numClientsPerChild=20 --numberToPublish=1  --forkDelay=0 --Host=***.amazonaws.com \
       -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test000 \
       --pub-single-client=true --clientId=sdk-nodejs-pub-0
@@ -121,7 +128,7 @@ The point of of this is that, if you have a server with a single aws-iot-device-
 
 The script allows for using deviceId specific topics, for one to one publishing or many to one or one to many. Notice in the options above the `--topic=test000`. By appending /deviceId to it as `--topic=test000/deviceId` the script replaces the "deviceId" with a counter.
 ```
-      $ DEBUG_COLORS=no DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=10 \
+      $ DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=10 \
         --Host=***.amazonaws.com -Port8883 --privateKey=test001.private.key \
          --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test000/deviceId --sub=true --clientId=sdk-nodejs-sub-0
 
@@ -137,7 +144,7 @@ The script allows for using deviceId specific topics, for one to one publishing 
 ```
 We can see that each client is subscribing to a different unique topic. Now to publish;
 ```
-      $ DEBUG_COLORS=no DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
+      $ DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
       --numClientsPerChild=10 --numberToPublish=1  --forkDelay=0 --Host=***.amazonaws.com \
       -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
        --topic=test000/deviceId --pub-single-client=true --clientId=sdk-nodejs-pub-0
