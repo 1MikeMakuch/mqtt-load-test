@@ -1,15 +1,11 @@
 
 # mqtt load test
 
-
-
 This mqttTest.js script allows for simulating many mqtt devices both on the subscription and publish. You should run it in one session for subscriptions and another for publishing. I have tested it with mosquitto and AWS IOT.
 
 I have successfully run tests with as many as 100 child processes each with 50 clients for a total of 5000 clients, on a Macbook. With that much activity the publishing needs to be slowed down a bit, so there are options for throttling.
 
 It allows for creating multiple child processes and multiple mqtt device clients per process. It works with both the aws-iot-device-sdk as well as the mqtt client libraries.
-
-I have a short Youtube explaining the examples below: https://www.youtube.com/watch?v=SwsmxwZYUYM
 
 This is a Node.js script so first do;
 
@@ -123,8 +119,6 @@ With the same subscriber as above and this publisher with 20 clients;
 So it's clear that the AWS IOT service isn't throttling, it's the aws-iot-device-sdk, i.e. the "Used to time draining operations; active during draining." you can see in the code.
 
 The point of of this is that, if you have a server with a single aws-iot-device-sdk client sending mqtt messages on behalf of many devices, then you will run into this throttling when the number of devices becomes sufficient large. One way to address this is to increase the number of clients as I have shown above.
-
-
 
 ### Example: demonstrate per device topics
 
