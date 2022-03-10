@@ -53,88 +53,88 @@ By using a single mqtt/aws-iot-device-sdk client for publishing and one client w
 Create a subscription with 1 child, 1 client:
 
 ```
-  $ DEBUG_COLORS=no DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
-    --HostFile=awshost.txt -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
-    --topic=test0 --sub=true --clientId=sub-0 2>&1 | tee sub.log
+$ DEBUG_COLORS=no DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
+  --HostFile=awshost.txt -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
+  --topic=test0 --sub=true --clientId=sub-0 2>&1 | tee sub.log
 
-  2022-03-10T23:15:54.651Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
-  2022-03-10T23:15:54.653Z mqtt-test:child 0-0 subscribed test0
+2022-03-10T23:15:54.651Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
+2022-03-10T23:15:54.653Z mqtt-test:child 0-0 subscribed test0
 ```
 Now create a publisher and send 20 messages all at once:
 ```
-  $ DEBUG_COLORS=no DEBUG="mqtt-test*" node mqttTest.js --offlineQueuing=false  --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
-  --numberToPublish=20  --HostFile=awshost.txt -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
-  --topic=test0 --pub-single-client=true --clientId=pub-0 2>&1 | tee pub.log
+$ DEBUG_COLORS=no DEBUG="mqtt-test*" node mqttTest.js --offlineQueuing=false  --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
+--numberToPublish=20  --HostFile=awshost.txt -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
+--topic=test0 --pub-single-client=true --clientId=pub-0 2>&1 | tee pub.log
 
-  2022-03-10T23:17:50.443Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
-  2022-03-10T23:17:50.444Z mqtt-test:child 0-0 published-sc 1 topic:test0 {"message":"hello from: 0-0","timestamp":1646954270443,"startTime":1646954270059}
-  2022-03-10T23:17:50.445Z mqtt-test:child 0-1 published-sc 2 topic:test0 {"message":"hello from: 0-1","timestamp":1646954270445,"startTime":1646954270059}
-  [snip]
-  2022-03-10T23:17:50.447Z mqtt-test:child 0-18 published-sc 19 topic:test0 {"message":"hello from: 0-18","timestamp":1646954270447,"startTime":1646954270059}
-  2022-03-10T23:17:50.447Z mqtt-test:child 0-19 published-sc 20 topic:test0 {"message":"hello from: 0-19","timestamp":1646954270447,"startTime":1646954270059}
+2022-03-10T23:17:50.443Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
+2022-03-10T23:17:50.444Z mqtt-test:child 0-0 published-sc 1 topic:test0 {"message":"hello from: 0-0","timestamp":1646954270443,"startTime":1646954270059}
+2022-03-10T23:17:50.445Z mqtt-test:child 0-1 published-sc 2 topic:test0 {"message":"hello from: 0-1","timestamp":1646954270445,"startTime":1646954270059}
+[snip]
+2022-03-10T23:17:50.447Z mqtt-test:child 0-18 published-sc 19 topic:test0 {"message":"hello from: 0-18","timestamp":1646954270447,"startTime":1646954270059}
+2022-03-10T23:17:50.447Z mqtt-test:child 0-19 published-sc 20 topic:test0 {"message":"hello from: 0-19","timestamp":1646954270447,"startTime":1646954270059}
 ```
 Now create enough messages to see that AWS IOT drops messages when you exceed 100 per second per connection:
 ```
-  $ DEBUG_COLORS=no DEBUG="mqtt-test*" node mqttTest.js --offlineQueuing=false  --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
-   --numberToPublish=500  --HostFile=awshost.txt -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
-   --topic=test0 --pub-single-client=true --clientId=pub-0 2>&1 | tee pub.log
+$ DEBUG_COLORS=no DEBUG="mqtt-test*" node mqttTest.js --offlineQueuing=false  --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
+ --numberToPublish=500  --HostFile=awshost.txt -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
+ --topic=test0 --pub-single-client=true --clientId=pub-0 2>&1 | tee pub.log
 
-  2022-03-10T23:24:11.569Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
-  2022-03-10T23:24:11.571Z mqtt-test:child 0-0 published-sc 1 topic:test0 {"message":"hello from: 0-0","timestamp":1646954651570,"startTime":1646954651194}
-  2022-03-10T23:24:11.571Z mqtt-test:child 0-1 published-sc 2 topic:test0 {"message":"hello from: 0-1","timestamp":1646954651571,"startTime":1646954651194}
-  2022-03-10T23:24:11.571Z mqtt-test:child 0-2 published-sc 3 topic:test0 {"message":"hello from: 0-2","timestamp":1646954651571,"startTime":1646954651194}
-  [snip]
-  2022-03-10T23:25:03.287Z mqtt-test:child 0-497 published-sc 498 topic:test0 {"message":"hello from: 0-497","timestamp":1646954703287,"startTime":1646954702882}
-  2022-03-10T23:25:03.287Z mqtt-test:child 0-498 published-sc 499 topic:test0 {"message":"hello from: 0-498","timestamp":1646954703287,"startTime":1646954702882}
-  2022-03-10T23:25:03.287Z mqtt-test:child 0-499 published-sc 500 topic:test0 {"message":"hello from: 0-499","timestamp":1646954703287,"startTime":1646954702882}
+2022-03-10T23:24:11.569Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
+2022-03-10T23:24:11.571Z mqtt-test:child 0-0 published-sc 1 topic:test0 {"message":"hello from: 0-0","timestamp":1646954651570,"startTime":1646954651194}
+2022-03-10T23:24:11.571Z mqtt-test:child 0-1 published-sc 2 topic:test0 {"message":"hello from: 0-1","timestamp":1646954651571,"startTime":1646954651194}
+2022-03-10T23:24:11.571Z mqtt-test:child 0-2 published-sc 3 topic:test0 {"message":"hello from: 0-2","timestamp":1646954651571,"startTime":1646954651194}
+[snip]
+2022-03-10T23:25:03.287Z mqtt-test:child 0-497 published-sc 498 topic:test0 {"message":"hello from: 0-497","timestamp":1646954703287,"startTime":1646954702882}
+2022-03-10T23:25:03.287Z mqtt-test:child 0-498 published-sc 499 topic:test0 {"message":"hello from: 0-498","timestamp":1646954703287,"startTime":1646954702882}
+2022-03-10T23:25:03.287Z mqtt-test:child 0-499 published-sc 500 topic:test0 {"message":"hello from: 0-499","timestamp":1646954703287,"startTime":1646954702882}
 ```
 You'll only receive about ~300 on the subscriber:
 ```
-  $ DEBUG_COLORS=no DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
-  --HostFile=awshost.txt -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
-   --topic=test0 --sub=true --clientId=sub-0 2>&1 | tee sub.log
-  2022-03-10T23:23:59.595Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
-  2022-03-10T23:23:59.596Z mqtt-test:child 0-0 subscribed test0
-  2022-03-10T23:24:11.715Z mqtt-test:child 0-0 topic test0 received 1 hello from: 0-2 latency:144 totalTime:521
-  2022-03-10T23:24:11.716Z mqtt-test:child 0-0 topic test0 received 2 hello from: 0-8 latency:144 totalTime:522
-  2022-03-10T23:24:11.717Z mqtt-test:child 0-0 topic test0 received 3 hello from: 0-0 latency:147 totalTime:523
-  [snip]
-  2022-03-10T23:24:11.837Z mqtt-test:child 0-0 topic test0 received 308 hello from: 0-360 latency:248 totalTime:643
-  2022-03-10T23:24:11.837Z mqtt-test:child 0-0 topic test0 received 309 hello from: 0-214 latency:254 totalTime:643
-  2022-03-10T23:24:11.853Z mqtt-test:child 0-0 topic test0 received 310 hello from: 0-75 latency:276 totalTime:659
-  2022-03-10T23:24:11.859Z mqtt-test:child 0-0 topic test0 received 311 hello from: 0-39 latency:284 totalTime:665
+$ DEBUG_COLORS=no DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
+--HostFile=awshost.txt -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
+ --topic=test0 --sub=true --clientId=sub-0 2>&1 | tee sub.log
+2022-03-10T23:23:59.595Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
+2022-03-10T23:23:59.596Z mqtt-test:child 0-0 subscribed test0
+2022-03-10T23:24:11.715Z mqtt-test:child 0-0 topic test0 received 1 hello from: 0-2 latency:144 totalTime:521
+2022-03-10T23:24:11.716Z mqtt-test:child 0-0 topic test0 received 2 hello from: 0-8 latency:144 totalTime:522
+2022-03-10T23:24:11.717Z mqtt-test:child 0-0 topic test0 received 3 hello from: 0-0 latency:147 totalTime:523
+[snip]
+2022-03-10T23:24:11.837Z mqtt-test:child 0-0 topic test0 received 308 hello from: 0-360 latency:248 totalTime:643
+2022-03-10T23:24:11.837Z mqtt-test:child 0-0 topic test0 received 309 hello from: 0-214 latency:254 totalTime:643
+2022-03-10T23:24:11.853Z mqtt-test:child 0-0 topic test0 received 310 hello from: 0-75 latency:276 totalTime:659
+2022-03-10T23:24:11.859Z mqtt-test:child 0-0 topic test0 received 311 hello from: 0-39 latency:284 totalTime:665
 ```
 the rest are ignored because we've exceeded AWS limit of 100/sec per connection.
 
 By slowing down our publishing we can send 1k messages in under 1 minute and the subscriber receives them all:
 ```
-  $ DEBUG_COLORS=no DEBUG="mqtt-test*" node mqttTest.js --offlineQueuing=false  --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
-  --numberToPublish=1000  --publishDelayModulo=100 --publishDelay=1000  --HostFile=awshost.txt -Port8883 --privateKey=test001.private.key \
-  --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test0 --pub-single-client=true --clientId=pub-0 2>&1 | tee pub.log
+$ DEBUG_COLORS=no DEBUG="mqtt-test*" node mqttTest.js --offlineQueuing=false  --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 \
+--numberToPublish=1000  --publishDelayModulo=100 --publishDelay=1000  --HostFile=awshost.txt -Port8883 --privateKey=test001.private.key \
+--clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test0 --pub-single-client=true --clientId=pub-0 2>&1 | tee pub.log
 
-  2022-03-10T23:29:57.294Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
-  2022-03-10T23:29:57.295Z mqtt-test:child 0-0 published-sc 1 topic:test0 {"message":"hello from: 0-0","timestamp":1646954997294,"startTime":1646954996927}
-  2022-03-10T23:29:57.295Z mqtt-test:child 0-1 published-sc 2 topic:test0 {"message":"hello from: 0-1","timestamp":1646954997295,"startTime":1646954996927}
-  2022-03-10T23:29:57.296Z mqtt-test:child 0-2 published-sc 3 topic:test0 {"message":"hello from: 0-2","timestamp":1646954997296,"startTime":1646954996927}
-  [snip]
-  2022-03-10T23:30:06.375Z mqtt-test:child 0-997 published-sc 998 topic:test0 {"message":"hello from: 0-997","timestamp":1646955006375,"startTime":1646954996927}
-  2022-03-10T23:30:06.375Z mqtt-test:child 0-998 published-sc 999 topic:test0 {"message":"hello from: 0-998","timestamp":1646955006375,"startTime":1646954996927}
-  2022-03-10T23:30:06.375Z mqtt-test:child 0-999 published-sc 1000 topic:test0 {"message":"hello from: 0-999","timestamp":1646955006375,"startTime":1646954996927}
+2022-03-10T23:29:57.294Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
+2022-03-10T23:29:57.295Z mqtt-test:child 0-0 published-sc 1 topic:test0 {"message":"hello from: 0-0","timestamp":1646954997294,"startTime":1646954996927}
+2022-03-10T23:29:57.295Z mqtt-test:child 0-1 published-sc 2 topic:test0 {"message":"hello from: 0-1","timestamp":1646954997295,"startTime":1646954996927}
+2022-03-10T23:29:57.296Z mqtt-test:child 0-2 published-sc 3 topic:test0 {"message":"hello from: 0-2","timestamp":1646954997296,"startTime":1646954996927}
+[snip]
+2022-03-10T23:30:06.375Z mqtt-test:child 0-997 published-sc 998 topic:test0 {"message":"hello from: 0-997","timestamp":1646955006375,"startTime":1646954996927}
+2022-03-10T23:30:06.375Z mqtt-test:child 0-998 published-sc 999 topic:test0 {"message":"hello from: 0-998","timestamp":1646955006375,"startTime":1646954996927}
+2022-03-10T23:30:06.375Z mqtt-test:child 0-999 published-sc 1000 topic:test0 {"message":"hello from: 0-999","timestamp":1646955006375,"startTime":1646954996927}
 ```
 and the subscriber receives them as soon as they are published:
 ```
-  $ DEBUG_COLORS=no DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 --HostFile=awshost.txt \
-   -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test0 \
-   --sub=true --clientId=sub-0 2>&1 | tee sub.log
+$ DEBUG_COLORS=no DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=1 --HostFile=awshost.txt \
+ -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test0 \
+ --sub=true --clientId=sub-0 2>&1 | tee sub.log
 
-  2022-03-10T23:29:05.996Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
-  2022-03-10T23:29:05.998Z mqtt-test:child 0-0 subscribed test0
-  2022-03-10T23:29:57.423Z mqtt-test:child 0-0 topic test0 received 1 hello from: 0-0 latency:129 totalTime:496
-  2022-03-10T23:29:57.425Z mqtt-test:child 0-0 topic test0 received 2 hello from: 0-2 latency:129 totalTime:498
-  2022-03-10T23:29:57.428Z mqtt-test:child 0-0 topic test0 received 3 hello from: 0-3 latency:132 totalTime:501
-  2022-03-10T23:29:57.428Z mqtt-test:child 0-0 topic test0 received 4 hello from: 0-7 latency:131 totalTime:501
-  [snip]
-  2022-03-10T23:30:06.470Z mqtt-test:child 0-0 topic test0 received 998 hello from: 0-953 latency:97 totalTime:9543
-  2022-03-10T23:30:06.470Z mqtt-test:child 0-0 topic test0 received 999 hello from: 0-995 latency:95 totalTime:9543
-  2022-03-10T23:30:06.470Z mqtt-test:child 0-0 topic test0 received 1000 hello from: 0-996 latency:95 totalTime:9543
+2022-03-10T23:29:05.996Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
+2022-03-10T23:29:05.998Z mqtt-test:child 0-0 subscribed test0
+2022-03-10T23:29:57.423Z mqtt-test:child 0-0 topic test0 received 1 hello from: 0-0 latency:129 totalTime:496
+2022-03-10T23:29:57.425Z mqtt-test:child 0-0 topic test0 received 2 hello from: 0-2 latency:129 totalTime:498
+2022-03-10T23:29:57.428Z mqtt-test:child 0-0 topic test0 received 3 hello from: 0-3 latency:132 totalTime:501
+2022-03-10T23:29:57.428Z mqtt-test:child 0-0 topic test0 received 4 hello from: 0-7 latency:131 totalTime:501
+[snip]
+2022-03-10T23:30:06.470Z mqtt-test:child 0-0 topic test0 received 998 hello from: 0-953 latency:97 totalTime:9543
+2022-03-10T23:30:06.470Z mqtt-test:child 0-0 topic test0 received 999 hello from: 0-995 latency:95 totalTime:9543
+2022-03-10T23:30:06.470Z mqtt-test:child 0-0 topic test0 received 1000 hello from: 0-996 latency:95 totalTime:9543
 ```
