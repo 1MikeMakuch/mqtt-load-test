@@ -26,6 +26,8 @@ if (opts.HostFile) {
   opts.Host = fs.readFileSync(opts.HostFile, 'utf8')
 }
 
+opts.offlineQueuing = opts.offlineQueuing ? true : false
+
 const children = new Array(opts.numChildren).fill(null)
 
 let startTime = Date.now()
@@ -60,7 +62,7 @@ async function main() {
 
     const clients = new Array(opts.numClientsPerChild).fill(null)
     debug('clients 0', JSON.stringify(clients))
-    let numberPublishes = 0
+    let numberPublishes = 1
 
     if ('aws' === opts.mqttLibType) {
       debug('aws')
@@ -79,7 +81,8 @@ async function main() {
           protocol: opts.Protocol,
           port: opts.Port,
           host: opts.Host,
-          debug: opts.Debug
+          debug: opts.Debug,
+          offlineQueueing: opts.offlineQueuing
         })
         clients[i].clientId = i
         mqttOps(clients[i])
@@ -181,20 +184,39 @@ async function main() {
         client.on('error', function (error) {
           debug(deviceId, 'error', error)
         })
-
+        let last = Date.now()
+        let count = 0
+        let now = last
         client.on('message', function (topic, _payload) {
-          const payload = JSON.parse(_payload.toString())
-          const now = Date.now()
+          let payload = {}
+          try {
+            payload = JSON.parse(_payload.toString())
+          } catch (e) {
+            payload.message = _payload.toString()
+            payload.timestamp = 0
+            payload.startTime = 0
+          }
+          last = now
+          now = Date.now()
+          if (0 === payload.timestamp) now = 0
           const latency = now - payload.timestamp
-          const totalLatency = now - payload.startTime
+          const totalTime = now - payload.startTime
+
+          if (now - last > 5000) {
+            count = 1
+          } else {
+            count++
+          }
+
           debug(
             deviceId,
             'topic',
             topic,
             'received',
+            count,
             payload.message,
             'latency:' + latency,
-            'totalLatency:' + totalLatency
+            'totalTime:' + totalTime
           )
         })
       })

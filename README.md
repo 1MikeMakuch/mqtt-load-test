@@ -1,7 +1,7 @@
 
 # mqtt load test
 
-This mqttTest.js script allows for simulating many mqtt devices both on the subscription and publish. You should run it in one session for subscriptions and another for publishing. I have tested it with mosquitto and AWS IOT.
+This mqttTest.js script allows for simulating many mqtt devices both on the subscription and publish. You should run it in one shell for subscriptions and another for publishing, or more! I have tested it with mosquitto and AWS IOT.
 
 I have successfully run tests with as many as 100 child processes each with 50 clients for a total of 5000 clients, on a Macbook. With that much activity the publishing needs to be slowed down a bit, so there are options for throttling.
 
@@ -46,17 +46,15 @@ To run it with debug logging;
           --topic=string               "deviceId" will be replaced with counter
 ```
 
-
-
 ### Example: demonstrate the throttling implemented in the aws-iot-device-sdk
 
-By using a single mqtt/aws-iot-device-sdk client for publishing and one client with a subscription, we can see that the aws client throttles publishes at a much lower rate than the hard limit of 100 per second per client https://docs.aws.amazon.com/general/latest/gr/iot-core.html#message-broker-limits In fact this rate is limited by the aws client in: https://github.com/aws/aws-iot-device-sdk-js/blob/master/device/index.js#L308 see the drainTimeMs variable. If you adjust that lower it will speed up publishes.
+By using a single mqtt/aws-iot-device-sdk client for publishing and one client with a subscription, we can see that the aws client throttles publishes at a much lower rate than the hard limit of 100 per second per connection/client https://docs.aws.amazon.com/general/latest/gr/iot-core.html#message-broker-limits In fact this rate is limited by the aws client in: https://github.com/aws/aws-iot-device-sdk-js/blob/master/device/index.js#L308 see the drainTimeMs variable. If you adjust drainTimeMs lower it will speed up publishes.
 
 Create a subscription with 1 child, 1 client:
 
 ```
       $ DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --sub=true --numChildren=1 --numClientsPerChild=1 \
-        --Host=***.amazonaws.com -Port8883 \
+        --HostFile=awshost.txt -Port8883 \
         --privateKey=test001.private.key  --clientCert=test001.cert.pem --caCert=root-CA.crt \
         --topic=test000 --clientId=sdk-nodejs-sub-0
 
@@ -68,7 +66,7 @@ And now publish a few messages with a single client:
 
 ```
       $ DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
-      --numClientsPerChild=1 --numberToPublish=20  --forkDelay=0 --Host=***.amazonaws.com \
+      --numClientsPerChild=1 --numberToPublish=20  --forkDelay=0 --HostFile=awshost.txt \
       -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test000 \
       --pub-single-client=true --clientId=sdk-nodejs-pub-0
 
@@ -92,7 +90,7 @@ We can see the aws-iot-device-sdk client accepts all the publishes at once, with
       2022-02-24T21:51:51.402Z mqtt-test:child 0-0 topic test000 received hello from: 0-18 latency:4878 totalLatency:5273
       2022-02-24T21:51:51.650Z mqtt-test:child 0-0 topic test000 received hello from: 0-19 latency:5127 totalLatency:5522
 ```
-And if you adjust the `drainTimeMs = 250` you will readily see the result.
+And if you adjust the `drainTimeMs = 250` you will readily see the result, the messages are received much faster by the subscriber.
 
 This throttling is occuring in the aws-iot-device-sdk, not in the AWS IOT Core service. A couple ways to see this;
 
@@ -104,7 +102,7 @@ With the same subscriber as above and this publisher with 20 clients;
 
 ```
       $ DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
-      --numClientsPerChild=20 --numberToPublish=1  --forkDelay=0 --Host=***.amazonaws.com \
+      --numClientsPerChild=20 --numberToPublish=1  --forkDelay=0 --HostFile=awshost.txt \
       -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test000 \
       --pub-single-client=true --clientId=sdk-nodejs-pub-0
 
@@ -118,14 +116,49 @@ With the same subscriber as above and this publisher with 20 clients;
 ```
 So it's clear that the AWS IOT service isn't throttling, it's the aws-iot-device-sdk, i.e. the "Used to time draining operations; active during draining." you can see in the code.
 
-The point of of this is that, if you have a server with a single aws-iot-device-sdk client sending mqtt messages on behalf of many devices, then you will run into this throttling when the number of devices becomes sufficient large. One way to address this is to increase the number of clients as I have shown above.
+Finally, if we disable the drainQueue in aws-iot-device-sdk-js. Set `offlineQueueing` to `false`; https://github.com/aws/aws-iot-device-sdk-js/blob/master/device/index.js#L273
+
+Now publish 20 messages 1 to 1 and see that they're received immediately;
+
+Subscribe;
+
+```
+      $ DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --sub=true --numChildren=1 --numClientsPerChild=1 \
+        --HostFile=awshost.txt -Port8883 \
+        --privateKey=test001.private.key  --clientCert=test001.cert.pem --caCert=root-CA.crt \
+        --topic=test000 --clientId=sdk-nodejs-sub-0
+
+      2022-02-24T21:46:38.389Z mqtt-test:child 0-0 connect {"child":0,"clientId":0}
+      2022-02-24T21:46:38.390Z mqtt-test:child 0-0 subscribed test000
+```
+and publish;
+
+
+```
+      $ DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
+      --numClientsPerChild=1 --numberToPublish=20  --forkDelay=0 --HostFile=awshost.txt \
+      -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test000 \
+      --pub-single-client=true --clientId=sdk-nodejs-pub-0
+
+```
+
+Now, let's see the hard limit of 100 per second per connection/client https://docs.aws.amazon.com/general/latest/gr/iot-core.html#message-broker-limits
+
+
+
+
+
+
+
+
+
 
 ### Example: demonstrate per device topics
 
 The script allows for using deviceId specific topics, for one to one publishing or many to one or one to many. Notice in the options above the `--topic=test000`. By appending /deviceId to it as `--topic=test000/deviceId` the script replaces the "deviceId" with a counter.
 ```
       $ DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildren=1 --numClientsPerChild=10 \
-        --Host=***.amazonaws.com -Port8883 --privateKey=test001.private.key \
+        --HostFile=awshost.txt -Port8883 --privateKey=test001.private.key \
          --clientCert=test001.cert.pem --caCert=root-CA.crt --topic=test000/deviceId --sub=true --clientId=sdk-nodejs-sub-0
 
       2022-02-24T22:18:41.595Z mqtt-test:child 0-4 connect {"child":0,"clientId":4}
@@ -141,7 +174,7 @@ The script allows for using deviceId specific topics, for one to one publishing 
 We can see that each client is subscribing to a different unique topic. Now to publish;
 ```
       $ DEBUG="mqtt-test*" node mqttTest.js --mqttLibType=aws --numChildren=1 \
-      --numClientsPerChild=10 --numberToPublish=1  --forkDelay=0 --Host=***.amazonaws.com \
+      --numClientsPerChild=10 --numberToPublish=1  --forkDelay=0 --HostFile=awshost.txt \
       -Port8883 --privateKey=test001.private.key --clientCert=test001.cert.pem --caCert=root-CA.crt \
        --topic=test000/deviceId --pub-single-client=true --clientId=sdk-nodejs-pub-0
 
