@@ -4,6 +4,7 @@
 const getopts = require('getopts')
 let debug = require('debug')('mqtt-test:parent')
 let debugE = require('debug')('mqtt-test:error:parent')
+let debugV = require('debug')('verbose:mqtt-test:parent')
 const moment = require('moment')
 const _ = require('lodash')
 const fs = require('fs')
@@ -37,7 +38,7 @@ async function main() {
     //
     // parent
 
-    debug('This is the parent', process.pid, JSON.stringify(process.argv))
+    debugV('This is the parent', process.pid, JSON.stringify(process.argv))
     const controller = new AbortController()
     const {signal} = controller
 
@@ -45,7 +46,7 @@ async function main() {
     for (let i = 0; i < opts.numChildren; i++) {
       let args = JSON.parse(JSON.stringify(process.argv.slice(2)))
       args.push('--child=' + i)
-      debug('args', i, JSON.stringify(args))
+      debugV('args', i, JSON.stringify(args))
       children[i] = fork(__filename, args, {signal})
       await sleep(opts.forkDelay) // throttle
     }
@@ -55,17 +56,18 @@ async function main() {
 
     debug = require('debug')('mqtt-test:child')
     debugE = require('debug')('mqtt-test:error:child')
-    debug('This is a child', process.pid, JSON.stringify(process.argv))
-    debug('opts', JSON.stringify(opts))
+    debugV = require('debug')('verbose:mqtt-test:child')
+    debugV('This is a child', process.pid, JSON.stringify(process.argv))
+    debugV('opts', JSON.stringify(opts))
 
     opts.numberPublishes = opts.numberPublishes || 1
 
     const clients = new Array(opts.numClientsPerChild).fill(null)
-    debug('clients 0', JSON.stringify(clients))
+    debugV('clients 0', JSON.stringify(clients))
     let numberPublishes = 1
 
     if ('aws' === opts.mqttLibType) {
-      debug('aws')
+      debugV('aws')
       let deviceModule = require('aws-iot-device-sdk').device
 
       for (let i = 0; i < opts.numClientsPerChild; i++) {
@@ -148,7 +150,7 @@ async function main() {
             client.publish(topic, JSON.stringify(payload))
             debug(deviceId, 'published', 'topic:' + topic, JSON.stringify(payload))
             numberPublishes++
-            if (0 === i % opts.publishDelayModulo) await sleep(opts.publishDelay)
+            if (i && 0 === i % opts.publishDelayModulo) await sleep(opts.publishDelay)
           }
         }
         if (opts['pub-single-client']) {
@@ -163,7 +165,7 @@ async function main() {
             client.publish(topic, JSON.stringify(payload))
             debug(deviceId, 'published-sc', numberPublishes, 'topic:' + topic, JSON.stringify(payload))
             numberPublishes++
-            if (0 === i % opts.publishDelayModulo) await sleep(opts.publishDelay)
+            if (i && 0 === i % opts.publishDelayModulo) await sleep(opts.publishDelay)
             i++
             clientId++
           }
@@ -236,6 +238,7 @@ async function main() {
 }
 
 async function sleep(msec) {
+  if (!msec) return
   debug('sleeping', msec)
   await new Promise(res => setTimeout(res, msec))
 }
