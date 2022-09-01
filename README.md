@@ -46,6 +46,8 @@ To run it with debug logging;
           --topic=string               "deviceId" will be replaced with counter
 ```
 
+Here's an 8 minute Youtube where I talk through all of this below: https://youtu.be/NR-iRixcLXg
+
 ### Example: demonstrate the queue implemented in the aws-iot-device-sdk
 
 By using a single mqtt/aws-iot-device-sdk client for publishing and one client with a subscription, we can see that the aws client throttles publishes at a much lower rate than the hard limit of 100 per second per connection/client https://docs.aws.amazon.com/general/latest/gr/iot-core.html#message-broker-limits In fact this rate is limited by the aws client in: https://github.com/aws/aws-iot-device-sdk-js/blob/master/device/index.js#L308 see the drainTimeMs variable. If you adjust drainTimeMs lower it will speed up the publishes. We can also disable the queue by setting offlineQueuing to false.
