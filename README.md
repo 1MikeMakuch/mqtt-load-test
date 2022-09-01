@@ -138,3 +138,4 @@ $ DEBUG_COLORS=no DEBUG="mqtt-t*" node mqttTest.js --mqttLibType=aws --numChildr
 2022-03-10T23:30:06.470Z mqtt-test:child 0-0 topic test0 received 999 hello from: 0-995 latency:95 totalTime:9543
 2022-03-10T23:30:06.470Z mqtt-test:child 0-0 topic test0 received 1000 hello from: 0-996 latency:95 totalTime:9543
 ```
+test
